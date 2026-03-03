@@ -1,129 +1,124 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport"
-  content="width=device-width,
-  initial-scale=1.0">
-  <title>Allffa Marketplace</title>
-
-
+  <title>CashCircle</title>
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#111111">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <meta name="apple-mobile-web-app-capable"
-  content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-
 <body>
 
-  <!-- NAVBAR-->
-   <header class="navbar">
-    <div class="nav-left">
-      <span class="menu">☰</span>
-    </div>
+<div class="app">
 
-    <div class="logo">
-      Allffa
-    </div>
-
-    <div class="nav-right">
-      <span>🔍</span>
-      <span>❤️</span>
-      <span onclick="toggleCart()">🛒</span>
-    </div>
-   </header>
-
-   <!-- Top basket -->
-   <div class="basket" onclick="toggleCart()">
-        🛒 Cart: <span id="cart-count">0</span>
-        Items | Total: <span id="cart-total-amount">0</span>
-      </div>
-
-  <!-- HERO SECTION -->
-  <section class="hero">
-    <div class="hero-overlay"></div>
-<div class="hero-content">
-   <h1>Allffa Marketplace</h1>
-   <h2>Your Everyday Store</h2>
-    <p>Supermarket .  Groceries . 
-      Household Items</p>
-      <a href="#products" class="btn">Shop 
-        Now</a>
-  </div>
-  </section>
-
-  <!-- PRODUCTS -->
-   <section class="products" id="products">
-    <h2>Featured Products</h2>
-     <div class="product-grid" id="productGrid"></div>
-</section>
-
-<!-- CART DRAWER-->
-  <div class="cart-drawer" id="cartDrawer">
-    <div class="cart-header">
-      <h2>Your Cart</h2>
-      <button class="close-cart"
-      onclick="toggleCart()">❌</button>
-    </div>
-
-  <ul id="cart-items"></ul>
-  <button class="btn"
-  onclick="goToCheckout()">
-Proceed to Checkout
-</button>
-
-  <!-- Cart drawer total -->
-  <p id="cart-total-text">Total: ₵0</p>
+  <!-- HEADER -->
+  <div class="header">
+    <h2>Krisbeck Susu</h2>
   </div>
 
-  <!-- CART OVERLAY -->
-   <div class="cart-overlay" id="cart-overlay"
-   onclick="toggleCart()"></div>
-
- <!-- ABOUT -->
-   <section class="about">
-    <h2>About Us</h2>
-    <p>
-      Allffa Marketplace is your trusted
-      neighborhood store providing quality
-      groceries, daily essentials, and 
-      affordable household products.
-    </p>
-   </section>
-
-<!-- FOOTER -->
- <footer>
-  <P>@ 2026 Allffa Marketplace | All
-    Rights Reserved</P>
-
-    <!-- ADMIN BUTTON -->
-       <button onclick="renderAdmin()"
-       class="admin-btn">Admin</button>
-
-       <div id="admin-panel" style="
-       display:none;
-       padding: 15px;
-       background: #f5f5f5;
-       margin-top: 10px;">
-       <h3>Admin Panel</h3>
-       <div class="admin-form">
-        <input type="text" id="admin-name"
-        placeholder="Product Name">
-        <input type="number" id="admin-price"
-        placeholder="Price (₵)">
-        <input type="number" id="admin-stock"
-        placeholder="Stock Quantity">
-        <input type="file" id="admin-image"
-        accept="image/*">
-        <button onclick="addProduct()">Add Product</button>
-       </div>
-       <h4>Existing Products</h4>
-       <div id="adminProducts"></div>
+  <!-- LOGIN SCREEN -->
+  <div id="loginScreen" class="screen active">
+    <h3>Login</h3>
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="login()">Login</button>
+    <button onclick="signUp()">Sign Up</button>
   </div>
 
- </footer>
+  <!-- DASHBOARD -->
+  <div id="dashboard" class="screen active">
+  <h3>Dashboard</h3>
+  <p>Total Customers: <span id="totalCustomers"></span></p>
+  <p>Total Savings: ₵<span id="totalSavings"></span></p>
+  <p>Total Loans: ₵<span id="totalLoans"></span></p>
+  <button onclick="viewDailyLogs()">📅 View Daily Logs</button>
+</div>
+
+<div id="dailyLogsScreen" class="screen">
+  <h3>Daily Logs</h3>
+  <ul id="dailyLogsList"></ul>
+  <button onclick="showScreen('dashboard')">⬅ Back</button>
+</div>
+
+<div id="adminScreen" class="screen">
+  <h3>Admin Dashboard</h3>
+  <p>Total Collectors: <span id="totalUsers"></span></p>
+  <p>Total Customers: <span id="adminCustomers"></span></p>
+  <p>Total Money: ₵<span id="adminMoney"></span></p>
+  <button onclick="viewReports()">📊 View Monthly Reports</button>
+</div>
+
+<div id="reportsScreen" class="screen">
+  <h3>Monthly Reports</h3>
+  <ul id="reportsList"></ul>
+  <button onclick="showScreen('adminScreen')">⬅ Back</button>
+</div>
+
+  <!-- CUSTOMERS -->
+  <div id="customersScreen" class="screen">
+    <h3>Customers</h3>
+    <input type="text" id="customerName" placeholder="Customer Name">
+    <button onclick="addCustomer()">Add Customer</button>
+    <ul id="customers"></ul>
+  </div>
+
+  <!-- PAYMENTS -->
+  <div id="paymentsScreen" class="screen">
+    <h3>Payments</h3>
+    <input type="text" id="payName" placeholder="Customer Name">
+    <input type="number" id="payAmount" placeholder="Amount">
+    <button onclick="addPayment()">Add Payment</button>
+  </div>
+
+  <!-- LOANS -->
+  <div id="loansScreen" class="screen">
+    <h3>Loans</h3>
+    <input type="text" id="loanName" placeholder="Customer Name">
+    <input type="number" id="loanAmount" placeholder="Amount">
+    <input type="number" id="interest" placeholder="Interest %">
+    <button onclick="giveLoan()">Give Loan</button>
+  </div>
+
+  <!-- ADMIN DASHBOARD -->
+  <div id="adminScreen" class="screen">
+    <h3>Admin Dashboard</h3>
+    <p>Total Collectors: <span id="totalUsers">0</span></p>
+    <p>Total Customers: <span id="adminCustomers">0</span></p>
+    <p>Total Money: <span id="adminMoney">₵0</span></p>
+  </div>
+
+  <!-- NAVBAR -->
+  <div class="nav">
+    <button onclick="showScreen('dashboard')">🏠</button>
+    <button onclick="showScreen('customersScreen')">👥</button>
+    <button onclick="showScreen('paymentsScreen')">💵</button>
+    <button onclick="showScreen('loansScreen')">🏦</button>
+    <button onclick="openAdmin()">👑</button>
+  </div>
+
+</div>
+
+<!-- FIREBASE CONFIG -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "YOUR_KEY",
+    authDomain: "YOUR_DOMAIN",
+    projectId: "YOUR_PROJECT_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  window.auth = auth;
+  window.db = db;
+</script>
+
+<!-- MAIN APP SCRIPT -->
+<script type="module" src="script.js"></script>
+
 </body>
-<script src="script.js"></script>
 </html>

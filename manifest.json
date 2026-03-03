@@ -1,18 +1,20 @@
 {
-    "name": "Allffa Marketplace",
-    "short_name": "Allffa",
-    "start_url": "/",
-    "scope": "/",
-    "display": "standalone",
-    "background_color": "#ffffff",
-    "theme_color": "#111111",
-    "orientation": "potrait",
-    "icons": [
-        {
-            "src": "Images/logo.jpg",
-            "sizes": "512x512",
-            "type": "image/jpeg",
-            "purpose": "any maskable"
-        }
-        ]
-        }
+  "name": "Susu App",
+  "short_name": "Susu",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1e293b",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

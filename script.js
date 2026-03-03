@@ -1,418 +1,258 @@
-// Store cart items
-console.log("Script connected");
+// ---------------------- IMPORT FIREBASE MODULES ----------------------
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } 
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { 
+  getFirestore, collection, doc, addDoc, getDoc, getDocs, updateDoc, query, where, onSnapshot 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Load cart from local storage or start empty
-let cart =
-JSON.parse(localStorage.getItem("cart")) ||
-[];
+// ---------------------- FIREBASE CONFIG ----------------------
+const firebaseConfig = {
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_DOMAIN",
+  projectId: "YOUR_PROJECT_ID"
+};
 
-// Default products if none in local storage
-let products =
-JSON.parse(localStorage.getItem("products")
-) || [
-    {
-        id: 1,
-        name: "Rice Bag",
-        price: 120,
-        stock: 10,
-        image: "images/rice.jpg"
-    },
-    {
-        id: 2,
-        name: "Cooking Oil",
-        price: 45,
-        stock: 50,
-        image: "images/oil.jpg"
-    },
-    {
-        id: 3,
-        name: "Soap Pack",
-        price: 30,
-        stock: 200,
-        image: "images/soap.jpg"
-    }
-];
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-// Save products only if not in local storage(preserves edits)
-if (!localStorage.getItem("products")) {
-    localStorage.setItem("products",
-    JSON.stringify(products));
+// ---------------------- SCREEN UTILITY ----------------------
+function showScreen(screenId) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(screenId).classList.add("active");
 }
 
-// DOM elements
-const cartCount =
-document.getElementById("cart-count");
-// cart amount
-const cartTotal =
-document.getElementById("cart-total-amount");
-// Drawer total
-const cartItems = 
-document.getElementById("cart-items");
-// Drawer list
-const basketTotal =
-document.getElementById("cart-total-text");
-// Top basket total
+// ---------------------- LOGIN / SIGNUP ----------------------
+async function signUp() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  const role = "collector"; // default role, admin created manually in Firestore
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const uid = userCredential.user.uid;
 
-//--------------
-// Add to cart
-//--------------
-function addToCart(productId) {
-    const product = products.find(p => p.id ===
-        productId);
-    if (!product || product.stock <= 0)
-        return;
+    // Add user to Firestore
+    await addDoc(collection(db, "users"), {
+      name: email.split("@")[0],
+      email,
+      role,
+      createdAt: new Date()
+    });
 
-        const cartItem = cart.find(i => i.id ===
-            productId);
-    if (cartItem) {
-        cartItem.qty++;
+    alert("Account created successfully!");
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+async function login() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+// ---------------------- AUTH STATE ----------------------
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    const userSnap = await getDocs(query(collection(db, "users"), where("email", "==", user.email)));
+    const userData = userSnap.docs[0].data();
+
+    if (userData.role === "admin") {
+      loadAdminDashboard();
+      showScreen("adminScreen");
     } else {
-        cart.push({
-            id: productId,
-            name: product.name,
-            price: product.price,
-            qty: 1
-        });
+      loadCollectorDashboard();
+      showScreen("dashboard");
     }
-    product.stock--; // stock reduce here
-
-    renderProducts();
-    saveProducts();
-    saveCart();
-    animatedCart();
-    renderCart();
-    updateCartUI();
-// Auto-open cart drawer(mobile UX)
-    const drawer =
-    document.getElementById("cartDrawer");
-    const overlay =
-    document.getElementById("cart-overlay");
-    if (drawer && overlay) {
-        drawer.classList.add("open");
-        overlay.classList.add("show");
-        document.body.style.overflow =
-        "hidden";
-    }
-}
-
-//-----------------
-// Render Products
-//-----------------
-function renderProducts(productList = products) {
-    const grid =
-    document.getElementById("productGrid");
-    if (!grid) return;
-    
-    let html = "";
-
-    productList.forEach(product => {
-        const out = p.stock <= 0;
-         html +=`
-        <div class="product-card ${out ?
-            "sold-out" : ""}">
-        <img src="${p.image}" alt="${p.name}">
-        <h3>${p.name}</h3>
-        <p>₵${p.price}</p>
-        <p class="stock">
-        ${out ? "Out of Stock" : "Stock:" +
-            p.stock}
-            </p>
-        <button
-        ${out ? "disabled" : ""}
-        onclick="addToCart(${p.id})">
-        ${out ? "Unavailable" : "Add to Cart"}
-        </button>
-        </div>
-        `;
-    });
-    grid.innerHTML = html;
-}
-renderProducts();
-//Search products
-function searchProducts() {
-    const searchValue =
-    document.getElementById("searchInput")
-    .value.toLowerCase();
-
-    const filteredProducts =
-    products.filter(product =>
-
-        product.name.toLowerCase().includes(searchValue)
-    );
-}
-renderProducts(filteredProducts);
-//---------------
-// Render cart
-//---------------
-function renderCart() {
-    cartItems.innerHTML = "";
-let total = 0;
-
-cart.forEach((item, index) => {
-    total += item.price * item.qty;
-
-    const li =
-    document.createElement("li");
-    li.innerHTML = `
-    ${item.name} - ₵${item.price} x ${item.qty}
-    <button onclick="changeQTY(${index},
-    1)">+</button>
-    <button onclick="changeQTY(${index},
-    -1)">-</button>
-    <button onclick="removeItems(${index})">❌</button>
-    `;
-    cartItems.appendChild(li);
+  } else {
+    showScreen("loginScreen");
+  }
 });
-// Update cart total
-if (cartTotal) cartTotal.textContent =
-total;
-if (basketTotal) basketTotal.textContent =
-`${total}`;
-if (cartCount) cartCount.textContent =
-cart.reduce((sum, i) => sum + i.qty, 0);
+
+// ---------------------- COLLECTOR DASHBOARD ----------------------
+async function loadCollectorDashboard() {
+  const user = auth.currentUser;
+  const customersSnap = await getDocs(query(collection(db, "customers"), where("userId", "==", user.uid)));
+
+  let totalSavings = 0;
+  let totalLoans = 0;
+  document.getElementById("totalCustomers").textContent = customersSnap.size;
+
+  const dashboard = document.getElementById("dashboard");
+  dashboard.innerHTML = `
+    <h3>Dashboard</h3>
+    <p>Total Customers: ${customersSnap.size}</p>
+    <p>Total Savings: ₵<span id="totalSavings"></span></p>
+    <p>Total Loans: ₵<span id="totalLoans"></span></p>
+    <button onclick="viewDailyLogs()">📅 View Daily Logs</button>
+  `;
+
+  customersSnap.forEach(docItem => {
+    const data = docItem.data();
+    totalSavings += data.balance || 0;
+    totalLoans += data.totalLoan || 0;
+  });
+
+  document.getElementById("totalSavings").textContent = totalSavings;
+  document.getElementById("totalLoans").textContent = totalLoans;
 }
 
+// ---------------------- ADD CUSTOMER ----------------------
+async function addCustomer() {
+  const name = document.getElementById("customerName").value;
+  if (!name) return alert("Enter customer name");
 
-function goToCheckout() {
-    if (cart.length === 0){
-        alert("your cart is empty");
-        return;
+  const user = auth.currentUser;
+  await addDoc(collection(db, "customers"), {
+    name,
+    userId: user.uid,
+    balance: 0,
+    totalPaid: 0,
+    totalLoan: 0,
+    createdAt: new Date()
+  });
+
+  alert("Customer added!");
+  loadCollectorDashboard();
+}
+
+// ---------------------- ADD PAYMENT ----------------------
+async function addPayment() {
+  const name = document.getElementById("payName").value;
+  const amount = parseFloat(document.getElementById("payAmount").value);
+  if (!name || !amount) return alert("Enter valid data");
+
+  const user = auth.currentUser;
+  const customersSnap = await getDocs(query(collection(db, "customers"), where("userId", "==", user.uid)));
+
+  let customerFound = false;
+  for (let docItem of customersSnap.docs) {
+    const data = docItem.data();
+    if (data.name === name) {
+      customerFound = true;
+      await updateDoc(doc(db, "customers", docItem.id), {
+        balance: (data.balance || 0) + amount,
+        totalPaid: (data.totalPaid || 0) + amount
+      });
+
+      // Add transaction
+      await addDoc(collection(db, "transactions"), {
+        customerId: docItem.id,
+        userId: user.uid,
+        type: "payment",
+        amount,
+        date: new Date()
+      });
+      alert("Payment recorded!");
+      break;
     }
-    window.location.href = "checkout.html";
+  }
+  if (!customerFound) alert("Customer not found");
+
+  loadCollectorDashboard();
+}
+
+// ---------------------- GIVE LOAN ----------------------
+async function giveLoan() {
+  const name = document.getElementById("loanName").value;
+  const principal = parseFloat(document.getElementById("loanAmount").value);
+  const interest = parseFloat(document.getElementById("interest").value);
+
+  if (!name || !principal || !interest) return alert("Enter valid data");
+
+  const user = auth.currentUser;
+  const customersSnap = await getDocs(query(collection(db, "customers"), where("userId", "==", user.uid)));
+
+  let customerFound = false;
+  for (let docItem of customersSnap.docs) {
+    const data = docItem.data();
+    if (data.name === name) {
+      customerFound = true;
+      const totalPayable = principal + (principal * interest / 100);
+
+      await updateDoc(doc(db, "customers", docItem.id), {
+        totalLoan: (data.totalLoan || 0) + totalPayable
+      });
+
+      await addDoc(collection(db, "loans"), {
+        customerId: docItem.id,
+        userId: user.uid,
+        principal,
+        interest,
+        totalPayable,
+        amountPaid: 0,
+        status: "active",
+        createdAt: new Date()
+      });
+
+      alert("Loan granted!");
+      break;
     }
-//--------------------
-//whatsapp oder click
-//--------------------
+  }
+  if (!customerFound) alert("Customer not found");
 
-//------------------
-// Update Cart Badge
-//------------------
-function updateCartUI() {
-    const totalItems = cart.reduce((sum,
-        item) => sum + item.qty, 0);
-        if (cartCount) cartCount.textContent =
-        totalItems;
-}
-//-----------------------
-// CART DRAWER TOGGLE //
-//-----------------------
-function toggleCart() {
-    const drawer =
-    document.getElementById("cartDrawer");
-    const overlay =
-    document.getElementById("cart-overlay");
-
-    drawer.classList.toggle("open");
-    overlay.classList.toggle("show");
-
-    // lock body scroll (mobile UX win)
-    document.body.style.overflow =
-    drawer.classList.contains("open") ?
-    "hidden" : "auto";
-}
-//------------------
-// Change quantity
-//------------------
-function changeQTY(index, change) {
-    const item = cart[index];
-    if (!item) return;
-    const product = products.find(p => p.id === item.id);
-
-    if (!product) return;
-    if (change > 0 && product.stock <= 0) return
-    item.qty += change;
-
-    if (change > 0) product.stock--;
-    if (change < 0) product.stock++;
-
-    if (item.qty <= 0) {
-        cart.splice(index, 1);
-    }
-    saveProducts();
-    saveCart();
-    renderProducts();
-    renderCart();
-    updateCartUI();
+  loadCollectorDashboard();
 }
 
-//--------------
-// Remove item
-//--------------
-function removeItems(index) {
-    const item = cart[index];
-    const product = products.find(p => p.id
-        === item.id);
+// ---------------------- DAILY LOGS ----------------------
+async function viewDailyLogs() {
+  showScreen("dailyLogsScreen");
+  const logsList = document.getElementById("dailyLogsList");
+  logsList.innerHTML = "";
 
-        if (product) {
-            product.stock += item.qty;
-        }
+  const user = auth.currentUser;
+  const logsSnap = await getDocs(query(collection(db, "daily_logs"), where("userId", "==", user.uid)));
 
-    cart.splice(index, 1);
-    saveProducts();
-    saveCart();
-    renderProducts();
-    renderCart();
-    updateCartUI();
+  logsSnap.forEach(docItem => {
+    const log = docItem.data();
+    const li = document.createElement("li");
+    li.textContent = `Customer ID: ${log.customerId} | Date: ${log.date} | Paid: ${log.paid} | Amount: ₵${log.amount}`;
+    logsList.appendChild(li);
+  });
 }
 
+// ---------------------- ADMIN DASHBOARD ----------------------
+async function loadAdminDashboard() {
+  const usersSnap = await getDocs(collection(db, "users"));
+  const customersSnap = await getDocs(collection(db, "customers"));
+  const transactionsSnap = await getDocs(collection(db, "transactions"));
 
-//----------------
-// Admin Panel
-//-----------------------
-let adminUnlock = false;
+  let totalMoney = 0;
+  transactionsSnap.forEach(docItem => {
+    if (docItem.data().type === "payment") totalMoney += docItem.data().amount;
+  });
 
-function renderAdmin() {
-    const panel =
-document.getElementById("admin-panel");
-const adminProducts =
-document.getElementById("adminProducts");
-
-    if (!adminUnlock) {
-        const password = prompt("Enter admin password")
-        if (password !== 'allffa123') {
-            alert("Acess denied");return
-        }
-        adminUnlock = true;
-    }
-
-    // Toggle panel
-    panel.style.display =
-    panel.style.display === "block" ?
-    "none" : "block";
-
-    adminProducts.innerHTML = "";
-    
-    products.forEach((p, index) => {
-        adminProducts.innerHTML +=`
-        <div style="margin-bottom: 10px;">
-        <input value="${p.name}"
-        onchange="updateName(${index}, this.value)">
-        <input type="number" value="${p.price}"
-        onchange="updatePrice(${index}, this.value)">
-        <input type="number" value="${p.stock}"
-        onchange="updateStock(${index}, this.value)">
-        </div>
-        `;
-    });
+  document.getElementById("totalUsers").textContent = usersSnap.size;
+  document.getElementById("adminCustomers").textContent = customersSnap.size;
+  document.getElementById("adminMoney").textContent = totalMoney;
 }
 
-function updatePrice(index, value) {
-    products[index].price = Number(value);
-    saveProducts();
+// ---------------------- VIEW MONTHLY REPORTS ----------------------
+async function viewReports() {
+  showScreen("reportsScreen");
+  const reportsList = document.getElementById("reportsList");
+  reportsList.innerHTML = "";
+
+  const reportsSnap = await getDocs(collection(db, "reports"));
+  reportsSnap.forEach(docItem => {
+    const report = docItem.data();
+    const li = document.createElement("li");
+    li.textContent = `Collector ID: ${report.userId} | Collected: ₵${report.totalCollected} | Loans: ₵${report.totalLoans} | Period: ${report.dateRange.start} to ${report.dateRange.end}`;
+    reportsList.appendChild(li);
+  });
 }
 
-function updateName(index, value) {
-    products[index].name = value;
-    saveProducts();
-}
-
-function saveProducts() {
-    localStorage.setItem("products",
-        JSON.stringify(products)
-    );
-}
-
-function updateStock(index, value) {
-    products[index].stock = Number(value);
-    saveProducts();
-    renderProducts();
-}
-
-function addProduct() {
-    const name =
-    document.getElementById("admin-name").value;
-
-    const price =
-    parseFloat(document.getElementById("admin-price").value);
-    const stock =
-    parseInt(document.getElementById("admin-stock").value);
-    const imageInput =
-    document.getElementById("admin-image");
-
-    if(!name || !price || !stock || !imageInput.files[0]) {
-        alert("Please fill all fields");
-        return;
-    }
-
-    const reader = new FileReader();
-
-    reader.onload = function () {
-        const newProduct = {
-            id: Date.now(),
-            name: name,
-            price: price,
-            stock: stock,
-            image: reader.result,
-        };
-
-        products.push(newProduct);
-        localStorage.setItem("products",
-            JSON.stringify(products));
-
-            renderProducts();
-            renderAdmin();
-
-            alert("Product added successfully!");
-
-            // Clear fields
-
-            document.getElementById("admin-name").value = "";
-            document.getElementById("admin-price").value = "";
-            document.getElementById("admin-stock").value = "";
-            document.getElementById("admin-image").value = "";
-        };
-        reader.readAsDataURL(imageInput.files[0])
-    }
-
-    function renderAdminProducts() {
-        const container =
-        document.getElementById("adminProducts");
-        container.innerHTML = "";
-
-        products.forEach(product => {
-            container.innerHTML += `
-            <div style="margin-bottom:10px;">
-            <strong>${product.name}</strong> -
-            ₵${product.price} | Stock: ${product.stock}
-            </div>
-            `;
-        });
-    }
-
-//---------------
-// Animated Cart
-//---------------
-function animatedCart() {
-    const basket = 
-document.querySelector(".basket");
-if (!basket) return;
-
-basket.classList.add("shake");
-setTimeout(() => {
-    basket.classList.remove("shake");
-}, 300);
-}
-
-//----------------------------
-//Service Worker Registration
-//----------------------------
-if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js")
-    .then(() =>
-        console.log("ServiceWorker registered"))
-        .catch(err => console.log("SW failed", err));
-    }
-
-//---------------------------
-// Save cart to local storage
-//---------------------------
-function saveCart() {
-    localStorage.setItem("cart",
-JSON.stringify(cart));
-}
-
-//----------------------
-// Load cart on refresh
-//-----------------------
-updateCartUI();
-renderCart();
+// ---------------------- EXPORT FUNCTIONS ----------------------
+window.showScreen = showScreen;
+window.addCustomer = addCustomer;
+window.addPayment = addPayment;
+window.giveLoan = giveLoan;
+window.viewDailyLogs = viewDailyLogs;
+window.viewReports = viewReports;
+window.login = login;
+window.signUp = signUp;
